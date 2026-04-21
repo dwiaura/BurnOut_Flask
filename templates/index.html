@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WFH Burnout Risk Predictor</title>
+    <style>
+        :root {
+            --deep: #0d1b2a;
+            --dark: #1b2b3a;
+            --card: #162030;
+            --border: rgba(255,255,255,0.06);
+            --accent: #00b4d8;
+            --accent2: #0077b6;
+            --muted: #7baec9;
+            --light: #e8f4f8;
+            --surf: #c0dce8;
+            --danger-bg: rgba(255,90,90,0.08);
+            --danger-border: rgba(255,120,120,0.18);
+            --danger-text: #ff8a80;
+            --warn-bg: rgba(255,190,50,0.08);
+            --warn-border: rgba(255,200,60,0.18);
+            --warn-text: #ffd166;
+            --ok-bg: rgba(45,212,150,0.08);
+            --ok-border: rgba(45,212,150,0.20);
+            --ok-text: #2dd4a0;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(160deg, #0a1828 0%, #0d2137 50%, #0a2540 100%);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 32px 16px 48px;
+        }
+
+        .container { max-width: 680px; margin: 0 auto; }
+
+        .header { text-align: center; margin-bottom: 24px; }
+        .header .badge {
+            display: inline-block;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--accent);
+            background: rgba(0,180,216,0.10); border: 1px solid rgba(0,180,216,0.20);
+            border-radius: 999px; padding: 4px 14px; margin-bottom: 12px;
+        }
+        .header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; margin: 0 0 6px; }
+        .header p { font-size: 13px; color: var(--muted); margin: 0; }
+
+        .model-info {
+            background: rgba(0,119,182,0.08); border: 1px solid rgba(0,180,216,0.14);
+            border-radius: 10px; padding: 12px 16px; font-size: 13px;
+            color: var(--surf); margin-bottom: 20px;
+        }
+        .model-info strong { color: var(--light); }
+
+        .form-card {
+            background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+            border-radius: 14px; padding: 22px 20px; margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 11px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+            color: var(--accent); margin: 0 0 16px; padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .grup { margin-bottom: 16px; }
+        .grup:last-child { margin-bottom: 0; }
+
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--light); }
+        .hint { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: 400; display: block; }
+
+        .slider-wrap { display: flex; align-items: center; gap: 10px; }
+        input[type="range"] {
+            flex: 1; -webkit-appearance: none; appearance: none;
+            height: 6px; background: rgba(255,255,255,0.08); border-radius: 999px; outline: none; cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: var(--accent); cursor: pointer; border: 2px solid var(--deep);
+            box-shadow: 0 0 6px rgba(0,180,216,0.4);
+        }
+        .slider-val { font-size: 13px; font-weight: 700; color: var(--accent); min-width: 42px; text-align: right; white-space: nowrap; }
+
+        select, input[type="number"] {
+            width: 100%; padding: 10px 12px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            color: var(--light); border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s;
+        }
+        select:focus, input[type="number"]:focus { border-color: var(--accent); background: rgba(0,180,216,0.05); }
+        select option { background: #1b2b3a; color: var(--light); }
+
+        .toggle-row { display: flex; align-items: center; gap: 12px; }
+        .toggle-switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-track {
+            position: absolute; inset: 0; background: rgba(255,255,255,0.08);
+            border-radius: 999px; cursor: pointer; transition: background 0.2s;
+            border: 1px solid rgba(255,255,255,0.10);
+        }
+        .toggle-track::after {
+            content: ''; position: absolute; width: 18px; height: 18px; background: #fff;
+            border-radius: 50%; top: 3px; left: 3px; transition: transform 0.2s;
+        }
+        .toggle-switch input:checked + .toggle-track { background: var(--accent2); border-color: var(--accent); }
+        .toggle-switch input:checked + .toggle-track::after { transform: translateX(20px); }
+        .toggle-label { font-size: 13px; color: var(--surf); }
+
+        .radio-group { display: flex; gap: 10px; }
+        .radio-group label {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 8px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+            color: var(--surf); transition: border-color 0.2s, background 0.2s;
+        }
+        .radio-group input[type="radio"] { display: none; }
+        .radio-group input[type="radio"]:checked + label { border-color: var(--accent); background: rgba(0,180,216,0.10); color: var(--accent); }
+
+        .btn-predict {
+            width: 100%; padding: 13px;
+            background: linear-gradient(90deg, var(--accent2), var(--accent));
+            color: white; border: none; border-radius: 10px; font-size: 15px;
+            font-weight: 700; cursor: pointer; letter-spacing: 0.02em;
+            box-shadow: 0 6px 20px rgba(0,119,182,0.30); transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn-predict:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,180,216,0.35); }
+        .btn-predict:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .hasil-card { border-radius: 14px; padding: 18px 20px; margin-bottom: 20px; border: 1px solid; }
+        .hasil-card.high   { background: var(--danger-bg); border-color: var(--danger-border); }
+        .hasil-card.medium { background: var(--warn-bg);   border-color: var(--warn-border); }
+        .hasil-card.low    { background: var(--ok-bg);     border-color: var(--ok-border); }
+
+        .hasil-label { font-size: 11px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+        .hasil-badge { display: inline-block; font-size: 20px; font-weight: 800; padding: 4px 18px; border-radius: 999px; margin-bottom: 10px; }
+        .high   .hasil-badge { background: rgba(255,90,90,0.15);  color: var(--danger-text); }
+        .medium .hasil-badge { background: rgba(255,190,50,0.15); color: var(--warn-text); }
+        .low    .hasil-badge { background: rgba(45,212,150,0.15); color: var(--ok-text); }
+        .hasil-rekomendasi { font-size: 13px; color: var(--surf); margin-bottom: 14px; line-height: 1.6; }
+
+        .conf-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+        .conf-val { font-size: 22px; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
+        .bar-track { height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+        .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent2), var(--accent)); transition: width 0.6s ease; }
+        .conf-note { font-size: 12px; color: var(--muted); }
+
+        .history-card {
+            background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+            border-radius: 14px; padding: 18px 20px; margin-bottom: 20px;
+        }
+        .history-card h3 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 14px; }
+
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        thead th { text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 0 10px 8px; border-bottom: 1px solid var(--border); }
+        tbody tr { transition: background 0.15s; }
+        tbody tr:hover { background: rgba(255,255,255,0.03); }
+        tbody td { padding: 9px 10px; color: var(--surf); border-bottom: 1px solid rgba(255,255,255,0.04); }
+
+        .risk-pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.06em; }
+        .risk-pill.High   { background: rgba(255,90,90,0.15);  color: var(--danger-text); }
+        .risk-pill.Medium { background: rgba(255,190,50,0.15); color: var(--warn-text); }
+        .risk-pill.Low    { background: rgba(45,212,150,0.15); color: var(--ok-text); }
+
+        .empty-history { font-size: 13px; color: var(--muted); text-align: center; padding: 16px 0; }
+
+        .error { padding: 12px 16px; background: rgba(255,107,107,0.07); border: 1px solid rgba(255,107,107,0.15); border-radius: 10px; font-size: 13px; color: #ffb3ae; margin-bottom: 16px; }
+
+        .spinner-wrap { display: none; text-align: center; padding: 18px 0; }
+        .spinner { width: 28px; height: 28px; border: 3px solid rgba(0,180,216,0.15); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        footer { text-align: center; font-size: 12px; color: rgba(122,174,201,0.45); margin-top: 8px; }
+
+        @media (max-width: 520px) {
+            body { padding: 20px 12px 40px; }
+            .row-2 { grid-template-columns: 1fr; }
+            .radio-group { flex-direction: column; }
+            .header h1 { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <div class="badge">Machine Learning · Gradient Boosting</div>
+        <h1>WFH Burnout Risk Predictor</h1>
+        <p>Prediksi risiko burnout karyawan berdasarkan pola kerja harian</p>
+    </div>
+
+    {% if accuracy %}
+    <div class="model-info">
+        Model: <strong>Gradient Boosting Classifier</strong> &nbsp;|&nbsp;
+        Akurasi: <strong>{{ accuracy }}%</strong>
+        <br><small>Dilatih pada dataset WFH burnout ~1.800 catatan harian karyawan.</small>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <div class="form-card">
+        <div class="section-title">Input Data Harian</div>
+        <form id="prediksiForm">
+
+            <div class="row-2">
+                <div class="grup">
+                    <label for="work_hours">Jam Kerja</label>
+                    <span class="hint">Total jam kerja hari ini</span>
+                    <div class="slider-wrap">
+                        <input type="range" id="work_hours" name="work_hours" min="0" max="16" step="0.5" value="8"
+                               oninput="updateSlider('work_hours','wh_val', v => v + ' jam')">
+                        <span class="slider-val" id="wh_val">8 jam</span>
+                    </div>
+                </div>
+                <div class="grup">
+                    <label for="screen_time_hours">Screen Time</label>
+                    <span class="hint">Durasi paparan layar</span>
+                    <div class="slider-wrap">
+                        <input type="range" id="screen_time_hours" name="screen_time_hours" min="0" max="16" step="0.5" value="6"
+                               oninput="updateSlider('screen_time_hours','st_val', v => v + ' jam')">
+                        <span class="slider-val" id="st_val">6 jam</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row-2">
+                <div class="grup">
+                    <label for="meetings_count">Jumlah Meeting</label>
+                    <span class="hint">Rapat yang diikuti hari ini</span>
+                    <input type="number" id="meetings_count" name="meetings_count" min="0" max="20" value="3" required>
+                </div>
+                <div class="grup">
+                    <label for="breaks_taken">Jumlah Istirahat</label>
+                    <span class="hint">Waktu jeda yang diambil</span>
+                    <input type="number" id="breaks_taken" name="breaks_taken" min="0" max="10" value="2" required>
+                </div>
+            </div>
+
+            <div class="grup">
+                <label for="task_completion_rate">Task Completion Rate</label>
+                <span class="hint">Persentase tugas yang berhasil diselesaikan</span>
+                <div class="slider-wrap">
+                    <input type="range" id="task_completion_rate" name="task_completion_rate" min="0" max="100" step="1" value="70"
+                           oninput="updateSlider('task_completion_rate','tcr_val', v => v + '%')">
+                    <span class="slider-val" id="tcr_val">70%</span>
+                </div>
+            </div>
+
+            <div class="grup">
+                <label>Kerja di Luar Jam Kantor?</label>
+                <span class="hint">Apakah ada pekerjaan setelah jam kerja selesai</span>
+                <div class="toggle-row">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="after_hours_work" name="after_hours_work" value="1">
+                        <span class="toggle-track"></span>
+                    </label>
+                    <span class="toggle-label" id="toggle_label_ahw">Tidak</span>
+                </div>
+            </div>
+
+            <div class="grup">
+                <label>Jenis Hari</label>
+                <span class="hint">Hari kerja atau akhir pekan</span>
+                <div class="radio-group">
+                    <input type="radio" id="weekday" name="day_type_encoded" value="0" checked>
+                    <label for="weekday">📅 Weekday</label>
+                    <input type="radio" id="weekend" name="day_type_encoded" value="1">
+                    <label for="weekend">🏖️ Weekend</label>
+                </div>
+            </div>
+
+            <div class="grup">
+                <label for="sleep_category_encoded">Kategori Tidur</label>
+                <span class="hint">Estimasi durasi tidur malam ini</span>
+                <select id="sleep_category_encoded" name="sleep_category_encoded" required>
+                    <option value="0">Short — Kurang dari 6 jam</option>
+                    <option value="1" selected>Normal — 6 sampai 8 jam</option>
+                    <option value="2">Long — Lebih dari 8 jam</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-predict" id="btnPredict">
+                🔍 Prediksi Burnout Risk
+            </button>
+        </form>
+    </div>
+
+    <div class="spinner-wrap" id="spinnerWrap">
+        <div class="spinner"></div>
+        <p style="font-size:13px; color: var(--muted); margin-top:10px;">Memproses prediksi...</p>
+    </div>
+
+    <div id="hasilSection"></div>
+
+    <div class="history-card">
+        <h3>Riwayat Prediksi</h3>
+        <div id="historyBody">
+            <p class="empty-history">Belum ada riwayat prediksi.</p>
+        </div>
+    </div>
+
+    <footer>Powered by Gradient Boosting &nbsp;·&nbsp; Flask &nbsp;·&nbsp; scikit-learn</footer>
+</div>
+
+<script>
+    function updateSlider(inputId, labelId, formatter) {
+        const val = parseFloat(document.getElementById(inputId).value);
+        document.getElementById(labelId).textContent = formatter(val);
+    }
+
+    document.getElementById('after_hours_work').addEventListener('change', function() {
+        document.getElementById('toggle_label_ahw').textContent = this.checked ? 'Ya' : 'Tidak';
+    });
+
+    document.getElementById('prediksiForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        document.getElementById('spinnerWrap').style.display = 'block';
+        document.getElementById('hasilSection').innerHTML = '';
+        document.getElementById('btnPredict').disabled = true;
+
+        const payload = {
+            work_hours:             parseFloat(document.getElementById('work_hours').value),
+            screen_time_hours:      parseFloat(document.getElementById('screen_time_hours').value),
+            meetings_count:         parseInt(document.getElementById('meetings_count').value),
+            breaks_taken:           parseInt(document.getElementById('breaks_taken').value),
+            after_hours_work:       document.getElementById('after_hours_work').checked ? 1 : 0,
+            task_completion_rate:   parseFloat(document.getElementById('task_completion_rate').value),
+            day_type_encoded:       parseInt(document.querySelector('input[name="day_type_encoded"]:checked').value),
+            sleep_category_encoded: parseInt(document.getElementById('sleep_category_encoded').value)
+        };
+
+        try {
+            const res = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            document.getElementById('spinnerWrap').style.display = 'none';
+            document.getElementById('btnPredict').disabled = false;
+
+            if (data.error) {
+                document.getElementById('hasilSection').innerHTML = `<div class="error">⚠️ ${data.error}</div>`;
+                return;
+            }
+
+            const riskClass = data.result.toLowerCase();
+            const confPct   = Math.round(data.confidence * 100);
+            const rekMap = {
+                High:   '⚠️ Risiko burnout tinggi! Segera kurangi beban kerja, batasi screen time, dan ambil istirahat yang cukup.',
+                Medium: '🔔 Risiko sedang. Perhatikan pola kerja dan pastikan tidur yang berkualitas setiap malam.',
+                Low:    '✅ Risiko rendah. Pertahankan keseimbangan kerja dan istirahat Anda. Kerja bagus!'
+            };
+            let confNote = confPct >= 80 ? 'Model sangat yakin dengan prediksi ini.'
+                         : confPct >= 60 ? 'Model cukup yakin, namun masih ada ketidakpastian.'
+                         : 'Model kurang yakin — prediksi ini perlu diinterpretasi hati-hati.';
+
+            document.getElementById('hasilSection').innerHTML = `
+                <div class="hasil-card ${riskClass}">
+                    <div class="hasil-label">Hasil Prediksi Burnout Risk</div>
+                    <div class="hasil-badge">${data.result}</div>
+                    <div class="hasil-rekomendasi">${rekMap[data.result] || ''}</div>
+                    <div class="conf-label">Confidence Score</div>
+                    <div class="conf-val">${confPct}%</div>
+                    <div class="bar-track"><div class="bar-fill" style="width:${confPct}%"></div></div>
+                    <div class="conf-note">${confNote}</div>
+                </div>`;
+
+            loadHistory();
+
+        } catch(err) {
+            document.getElementById('spinnerWrap').style.display = 'none';
+            document.getElementById('btnPredict').disabled = false;
+            document.getElementById('hasilSection').innerHTML =
+                `<div class="error">⚠️ Tidak dapat terhubung ke server. Pastikan Flask berjalan.</div>`;
+        }
+    });
+
+    async function loadHistory() {
+        try {
+            const res  = await fetch('/history');
+            const data = await res.json();
+            if (!data.history || data.history.length === 0) {
+                document.getElementById('historyBody').innerHTML = '<p class="empty-history">Belum ada riwayat prediksi.</p>';
+                return;
+            }
+            const rows = data.history.map(row => `
+                <tr>
+                    <td>${row.timestamp}</td>
+                    <td>${row.work_hours} jam</td>
+                    <td>${row.screen_time_hours} jam</td>
+                    <td>${row.meetings_count}</td>
+                    <td>${Math.round(row.task_completion_rate)}%</td>
+                    <td><span class="risk-pill ${row.result}">${row.result}</span></td>
+                    <td>${Math.round(row.confidence * 100)}%</td>
+                </tr>`).join('');
+            document.getElementById('historyBody').innerHTML = `
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr>
+                            <th>Waktu</th><th>Kerja</th><th>Screen</th>
+                            <th>Meeting</th><th>Task</th><th>Risiko</th><th>Conf.</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        } catch(err) { /* silent */ }
+    }
+
+    loadHistory();
+</script>
+</body>
+</html>
